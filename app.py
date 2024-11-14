@@ -5,7 +5,7 @@ import torch
 from datetime import datetime
 import pandas as pd
 import re
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 from tensorflow.keras.models import load_model
 import numpy as np
 import librosa
@@ -54,7 +54,6 @@ def process_files(files, emotion_model):
                 f.write(file.getbuffer())
             
             # Extraer la fecha del nombre del archivo si está presente
-            # Reemplaza esta sección de código en process_files:
             date_match = re.search(r'(\d{4})(\d{2})(\d{2})', file.name)
             if date_match:
                 try:
@@ -64,9 +63,12 @@ def process_files(files, emotion_model):
             else:
                 creation_date = datetime.now()  # Si no hay fecha en el nombre del archivo, usa la fecha actual
 
-
-            if file.name.endswith('.mp3'):
-                audio_path = temp_file_path
+            # Procesar audio en diferentes formatos
+            if file.name.endswith('.mp3') or file.name.endswith('.m4a') or file.name.endswith('.opus') or file.name.endswith('.ogg'):
+                audio = AudioFileClip(temp_file_path)
+                audio_path = os.path.join(temp_dir, f"{os.path.splitext(file.name)[0]}.wav")
+                audio.write_audiofile(audio_path)
+                audio.close()
             elif file.name.endswith('.mp4'):
                 video = VideoFileClip(temp_file_path)
                 audio_path = os.path.join(temp_dir, f"{os.path.splitext(file.name)[0]}.wav")
@@ -92,8 +94,7 @@ def process_files(files, emotion_model):
             })
 
             os.remove(temp_file_path)
-            if file.name.endswith('.mp4'):
-                os.remove(audio_path)
+            os.remove(audio_path)
 
         except Exception as e:
             st.error(f"Error processing file {file.name}: {e}")
@@ -106,7 +107,7 @@ st.markdown("<h1 style='text-align: center; font-size: 48px;'>Extraer diálogos 
 
 st.markdown("""
 ## Instrucciones:
-1. **Sube tus archivos MP3 o MP4**: Usa el botón para seleccionar y subir múltiples archivos MP3 o MP4.
+1. **Sube tus archivos MP3, MP4, M4A, OPUS o OGG**: Usa el botón para seleccionar y subir múltiples archivos.
 2. **Procesar Archivos**: Haz clic en el botón "Procesar Archivos" para extraer las transcripciones y emociones.
 3. **Revisar y Descargar**: Revisa los resultados y descarga el archivo CSV.
 
@@ -118,7 +119,7 @@ st.markdown("""
 - **Pandas**: Para manejo de datos.
 """)
 
-uploaded_files = st.file_uploader("Sube archivos .mp3 o .mp4", accept_multiple_files=True)
+uploaded_files = st.file_uploader("Sube archivos .mp3, .mp4, .m4a, .opus, o .ogg", accept_multiple_files=True)
 
 if st.button("Procesar Archivos"):
     if uploaded_files:
